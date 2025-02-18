@@ -37,6 +37,7 @@ object ScanAndRemoveInactive extends App {
       // Flag to track if this token info needs updating.
       var needsUpdate = false
 
+      var emptyTokeIdCounter = 0
       // Check if the token info should be processed.
       if (shouldProcessTokenInfo(tokenInfo)) {
 
@@ -52,12 +53,13 @@ object ScanAndRemoveInactive extends App {
               needsUpdate = true
               None
             } else {
+              if (tokenDetail.id.isEmpty) emptyTokeIdCounter+=1
               // If the token is valid, keep the token detail as is.
               Some(tokenDetail)
             }
           }).getOrElse(Some(tokenDetail)) // If no access token is returned, keep the original token detail.
         }
-
+        println(s"Empty tokens with no ids $emptyTokeIdCounter")
         // If the token info needs an update, create a new object with updated token details.
         if (needsUpdate) {
           val updatedTokenInfo = tokenInfo.copy(tokenDetails = updatedTokenDetails)
@@ -65,7 +67,7 @@ object ScanAndRemoveInactive extends App {
         }
 
         // If there are items to update, trigger the update operation and clear the update list.
-        if (toUpdateList.length > 0) {
+        if (toUpdateList.length >= 25) {
           // ddbClient.batchUpdate(toUpdateList.map(_.asJson.toString()).toList)
           toUpdateList.clear() // Clear the list after the update.
         }
