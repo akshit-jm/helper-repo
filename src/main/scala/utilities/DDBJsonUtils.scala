@@ -1,4 +1,4 @@
-package utils
+package utilities
 
 import io.circe.syntax.EncoderOps
 import io.circe._

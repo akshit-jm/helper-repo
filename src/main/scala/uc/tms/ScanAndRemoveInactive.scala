@@ -3,9 +3,11 @@ package uc.tms
 import client.ddb.DDBClient
 import io.circe.generic.auto._
 import io.circe.jawn.decode
+import io.circe.syntax.EncoderOps
 import services.TokenManagementService
 import uc.tms.models.DaoCustomerTokenInfo
-import uc.tms.utils.Utils
+import utilities.FileUtils
+import utils.{Utils}
 
 import scala.collection.mutable.ListBuffer
 
@@ -24,6 +26,8 @@ object ScanAndRemoveInactive extends App {
     // Scan all items in the DynamoDB table.
     val iterator = ddbClient.scanItems()
     val toUpdateList = new ListBuffer[DaoCustomerTokenInfo]()
+    var emptyTokenIdInfos = new ListBuffer[DaoCustomerTokenInfo]()
+    val toUpdateInfos = new ListBuffer[DaoCustomerTokenInfo]()
 
     // Loop through each item retrieved from the DynamoDB scan operation.
     while (iterator.hasNext) {
@@ -37,7 +41,6 @@ object ScanAndRemoveInactive extends App {
       // Flag to track if this token info needs updating.
       var needsUpdate = false
 
-      var emptyTokeIdCounter = 0
       // Check if the token info should be processed.
       if (shouldProcessTokenInfo(tokenInfo)) {
 
@@ -53,31 +56,38 @@ object ScanAndRemoveInactive extends App {
               needsUpdate = true
               None
             } else {
-              if (tokenDetail.id.isEmpty) emptyTokeIdCounter+=1
+              if (tokenDetail.id.isEmpty || tokenDetail.id.get.isEmpty) emptyTokenIdInfos.addOne(tokenInfo)
               // If the token is valid, keep the token detail as is.
               Some(tokenDetail)
             }
           }).getOrElse(Some(tokenDetail)) // If no access token is returned, keep the original token detail.
         }
-        println(s"Empty tokens with no ids $emptyTokeIdCounter")
         // If the token info needs an update, create a new object with updated token details.
         if (needsUpdate) {
           val updatedTokenInfo = tokenInfo.copy(tokenDetails = updatedTokenDetails)
           toUpdateList.addOne(updatedTokenInfo)
+          toUpdateInfos.addOne(updatedTokenInfo)
         }
 
         // If there are items to update, trigger the update operation and clear the update list.
-        if (toUpdateList.length >= 25) {
-          // ddbClient.batchUpdate(toUpdateList.map(_.asJson.toString()).toList)
+        if (toUpdateList.length >= 20) {
+          ddbClient.batchUpdate(toUpdateList.map(_.asJson.toString()).toList)
           toUpdateList.clear() // Clear the list after the update.
         }
       }
     }
+    FileUtils.saveToFile("to_delete.json", toUpdateInfos.toList)
+    FileUtils.saveToFile("empty_ids.json", emptyTokenIdInfos.toList)
+
   }
 
 
   private def shouldProcessTokenInfo(tokenInfo: DaoCustomerTokenInfo): Boolean = {
-    true
+    val isGoodToken = tokenInfo.tokenDetails.forall(detail => {
+      detail.metadataIdentifierValue.isDefined && detail.metadataIdentifierType.isDefined
+    })
+
+    !isGoodToken
   }
 
   doWork()
