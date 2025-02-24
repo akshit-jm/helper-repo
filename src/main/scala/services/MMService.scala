@@ -12,38 +12,37 @@ object MMService {
 
   implicit val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend()
 
-  def deleteUserTransactions(deleteDataRequest: UserDeleteDataRequest) = {
+  def deleteUserTransactions(deleteDataRequest: UserDeleteDataRequest): Either[String, String] = {
 
     // Define the URL and payload
     val url = s"http://localhost:13004/mm/internal/transactions/${deleteDataRequest.user_id}?mmUUID=${deleteDataRequest.transactionuniqueidentifer}"
-
     val date = deleteDataRequest.transactiondatetime.atZone(ZoneId.of("Asia/Kolkata")).toLocalDate.toString
+
     // Define the payload data structure
-    val payload = Map[String, String](
+    val payload = Map(
       "product" -> "ADA",
       "from" -> date,
-      "to" -> date,
+      "to" -> date
     )
 
-    // Create a POST request
+    // Create a DELETE request
     val request = basicRequest
       .body(payload.asJson.noSpaces) // Convert payload to JSON (use Circe library for encoding)
       .contentType(MediaType.ApplicationJson)
-//      .headers(Map("x-execute-delete" -> "true"))
       .delete(uri"$url")
 
     // Execute the request
     val response = request.send(backend)
 
-    // Print the response body
+    // Handle the response
     response.body match {
       case Right(body) =>
         if (body == "0") {
-          println(s"Not deleted $deleteDataRequest")
+          Left(s"Not deleted: $deleteDataRequest")
         } else {
-//          println(s"Deleted $deleteDataRequest")
+          Right(s"Deleted: $deleteDataRequest")
         }
-      case Left(error) => println(s"Error: $error")
+      case Left(error) => Left(s"Error: $error")
     }
   }
 
