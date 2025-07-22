@@ -109,4 +109,27 @@ class DDBClient(tableName: String) {
     }
   }
 
+  def getItem(primaryKey: java.util.Map[String, AttributeValue]): Option[String] = {
+    val getItemRequest = GetItemRequest.builder()
+      .tableName(tableName)
+      .key(primaryKey)
+      .build()
+
+    try {
+      val response = dynamoDbClient.getItem(getItemRequest)
+
+      // Check if the item exists
+      if (response.hasItem) {
+        // If item exists, convert it to JSON and return it
+        Some(response.item().asScala.toMap.asJson.toString())
+      } else {
+        // If no item found, return None
+        None
+      }
+    } catch {
+      case e: Exception =>
+        println(s"Error getting item from DynamoDB: ${e.getMessage}")
+        None
+    }
+  }
 }

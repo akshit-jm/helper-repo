@@ -26,32 +26,34 @@ object DeleteMMTransactions extends App {
     val filteredTransactions = dataToDelete.slice(210000, dataToDelete.length)
     println(s"Total transactions to process: ${filteredTransactions.length}")
 
+    println(filteredTransactions.slice(0, 10))
+
     // Using Futures to process the transactions concurrently with a limit of 10 concurrent threads
-    val futures = filteredTransactions.zipWithIndex.map { case (data, index) =>
-      Future {
-        MMService.deleteUserTransactions(data)
-        if ((index + 1) % 2000 == 0) {
-          println(s"Processed $index transactions")
-        }
-      }
-    }
-
-    // Wait for all futures to complete
-    val aggregatedFuture = Future.sequence(futures).recover {
-      case e: Exception => throw e
-    }
-
-    // Handle completion
-    aggregatedFuture.onComplete {
-      case Success(_) => println("All transactions have been processed.")
-      case Failure(exception) => println(s"An error occurred: ${exception.getMessage}")
-    }
-
-    // Block the main thread to wait for all Futures to complete
-    Await.result(aggregatedFuture, Duration.Inf)
-
-    // Shut down the thread pool after completion
-    threadPool.shutdown()
+//    val futures = filteredTransactions.zipWithIndex.map { case (data, index) =>
+//      Future {
+//        MMService.deleteUserTransactions(data)
+//        if ((index + 1) % 2000 == 0) {
+//          println(s"Processed $index transactions")
+//        }
+//      }
+//    }
+//
+//    // Wait for all futures to complete
+//    val aggregatedFuture = Future.sequence(futures).recover {
+//      case e: Exception => throw e
+//    }
+//
+//    // Handle completion
+//    aggregatedFuture.onComplete {
+//      case Success(_) => println("All transactions have been processed.")
+//      case Failure(exception) => println(s"An error occurred: ${exception.getMessage}")
+//    }
+//
+//    // Block the main thread to wait for all Futures to complete
+//    Await.result(aggregatedFuture, Duration.Inf)
+//
+//    // Shut down the thread pool after completion
+//    threadPool.shutdown()
   }
 
   doWork()

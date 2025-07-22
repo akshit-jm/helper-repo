@@ -51,12 +51,12 @@ object ScanAndRemoveInactive extends App {
 
           // Check if access token retrieval was successful and handle different status responses.
           accessTokenResponse.map(accessToken => {
-            if (accessToken.status == "UNAUTHORIZED" || accessToken.status == "NO_ACTIVE_TOKEN_FOUND") {
+            if ((accessToken.status == "UNAUTHORIZED" || accessToken.status == "NO_ACTIVE_TOKEN_FOUND") && (tokenDetail.id.isEmpty || tokenDetail.id.get.isEmpty)) {
               // If the status indicates unauthorized or no active token, mark it as needing an update and return None.
+              emptyTokenIdInfos.addOne(tokenInfo)
               needsUpdate = true
               None
             } else {
-              if (tokenDetail.id.isEmpty || tokenDetail.id.get.isEmpty) emptyTokenIdInfos.addOne(tokenInfo)
               // If the token is valid, keep the token detail as is.
               Some(tokenDetail)
             }
@@ -76,8 +76,8 @@ object ScanAndRemoveInactive extends App {
         }
       }
     }
-    FileUtils.saveToFile("to_delete.json", toUpdateInfos.toList)
-    FileUtils.saveToFile("empty_ids.json", emptyTokenIdInfos.toList)
+    FileUtils.saveToFile("to_delete_2.json", toUpdateInfos.toList)
+    FileUtils.saveToFile("empty_ids_2.json", emptyTokenIdInfos.toList)
 
   }
 
